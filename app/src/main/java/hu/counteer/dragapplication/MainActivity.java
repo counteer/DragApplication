@@ -15,6 +15,12 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.animation.AlphaAnimation;
+import android.view.animation.Animation;
+import android.view.animation.DecelerateInterpolator;
+import android.view.animation.LinearInterpolator;
+import android.view.animation.RotateAnimation;
+import android.view.animation.ScaleAnimation;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -27,6 +33,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 
 public class MainActivity extends AppCompatActivity implements SharedPreferences.OnSharedPreferenceChangeListener {
     Map<Integer, BoardElement> gameBoard;
@@ -34,6 +41,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
     private Map<String, Tuple> pairingsWithTag;
     private int round;
     private List<String> tags = Arrays.asList("yellow", "blue", "purple", "red");
+    private List<String> actualTags;
     private ImageView todrag;
     private TextView timerText;
     private TextView playerNameText;
@@ -51,7 +59,6 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
         toDrops.add((ImageView) findViewById(R.id.target2));
         toDrops.add((ImageView) findViewById(R.id.target3));
         toDrops.add((ImageView) findViewById(R.id.target4));
-
 
         timerText = (TextView) findViewById(R.id.timer_text);
         playerNameText = (TextView) findViewById(R.id.player_name_text);
@@ -116,13 +123,13 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
     }
 
     private void initBoard(){
-
         round = 0;
-        todrag.setOnTouchListener(new CustomOnTouchListener() );
-        List<String> randomTags = getRandomTagList();
-        String actualTag ;
+        todrag.setOnTouchListener(new CustomOnTouchListener());
+        actualTags = new ArrayList<>();
+        String actualTag;
         for(int i = 0; i < 4; ++i){
-            actualTag = randomTags.get(i);
+            actualTag = getRandomTag(new Random().nextInt(4));
+            actualTags.add(actualTag);
             toDrops.get(i).setImageResource(pairingsWithTag.get(actualTag).getBoardElementColor());
             toDrops.get(i).setTag(actualTag);
             toDrops.get(i).setOnDragListener(new CustomDragListener());
@@ -131,19 +138,25 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
 
     private void initPlayer() {
         ImageView todrag = (ImageView) findViewById(R.id.drag1);
+        Animation fadeIn = new AlphaAnimation(0, 1);
+        fadeIn.setInterpolator(new DecelerateInterpolator()); // add this
+        fadeIn.setDuration(100);
+
         if(round<4){
-            this.player = new Player(1);
-            String tag = getRandomTag();
+            int tagIndex = new Random().nextInt(actualTags.size());
+            String tag = actualTags.get(tagIndex);
             todrag.setImageResource(pairingsWithTag.get(tag).getPlayerColor());
-            todrag.setTag(getRandomTag());
+            todrag.setTag(tag);
+            todrag.startAnimation(fadeIn);
             round++;
+            actualTags.remove(tagIndex);
         } else {
             Toast.makeText(MainActivity.this, "You Won!", Toast.LENGTH_LONG).show();
             todrag.setOnTouchListener(null);
         }
     }
-    private String getRandomTag(){
-        switch (round){
+    private String getRandomTag(int actual){
+        switch (actual){
             case 1: return "red";
             case 2: return "yellow";
             case 3: return "blue";
@@ -151,6 +164,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
             default: return "notag";
         }
     }
+
 
     private List<String> getRandomTagList(){
         Collections.shuffle(tags);
